@@ -4,23 +4,27 @@ Provides AI-powered security guidance using HuggingFace API
 """
 
 import os
+import streamlit as st # Import Streamlit to access st.secrets
 from huggingface_hub import InferenceClient
-from dotenv import load_dotenv
 
-load_dotenv()
+# Removed: from dotenv import load_dotenv
+# Removed: load_dotenv() # This line causes the app crash in Streamlit Cloud
 
 class SecurityAssistant:
     """LLM-powered security assistant using Foundation-Sec-8B"""
     
     def __init__(self):
         """Initialize the security assistant"""
-        self.api_key = os.getenv('HF_TOKEN', '')
+        
+        # 🚨 FIX: Use st.secrets to securely access the token added in the Streamlit dashboard
+        self.api_key = st.secrets.get('HF_TOKEN', '') 
+        
         self.model_id = "fdtn-ai/Foundation-Sec-8B"
         self.provider = "featherless-ai"
         self.use_llm = True
         
         if not self.api_key:
-            print("⚠️ Warning: HF_TOKEN not found. Using fallback responses.")
+            print("⚠️ Warning: HF_TOKEN not found in st.secrets. Using fallback responses.")
             self.client = None
         else:
             try:
