@@ -1,0 +1,22 @@
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Dependencies
+venv/
+.venv/
+env/
+*.egg-info/
+
+# ML Models and Environment Configuration
+models/*.pkl  # Temporarily ignore if you have large model files, but for small files, you might keep them.
+# We will include them to make deployment easy.
+# If they are too large (>50MB), you must host them externally (e.g., Google Drive, HuggingFace).
+
+# Log Files
+*.log
+
+# Streamlit Caching
+.streamlit/.env
