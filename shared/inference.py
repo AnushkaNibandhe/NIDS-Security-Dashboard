@@ -63,6 +63,62 @@ class NIDSInference:
         if not any(self.models.values()):
             print("⚠️ No attack models loaded. System running in DEMO/DUMMY mode.")
     
+    def predict(self, data):
+        """
+        Make prediction on input data
+        
+        Args:
+            data: Input features (DataFrame or numpy array)
+            
+        Returns:
+            dict with prediction results
+        """
+        try:
+            # Preprocess
+            data_scaled = self.preprocess_input(data)
+            
+            if self.model is not None:
+                # Real prediction
+                prediction = self.model.predict(data_scaled)[0]
+                
+                # Get confidence scores
+                if hasattr(self.model, 'predict_proba'):
+                    probabilities = self.model.predict_proba(data_scaled)[0]
+                    confidence = float(np.max(probabilities))
+                else:
+                    confidence = 0.95  # Default confidence
+            else:
+                # Dummy prediction for demo
+                prediction = np.random.choice([0, 1, 2, 3, 4], p=[0.7, 0.15, 0.08, 0.05, 0.02])
+                confidence = np.random.uniform(0.75, 0.99)
+            
+            # Map to attack type
+            attack_type = self.attack_mapping.get(prediction, 'Unknown')
+            
+            # Determine severity
+            severity = self.get_severity(attack_type, confidence)
+            
+            # Create result dictionary
+            result = {
+                'attack_type': attack_type,
+                'confidence': confidence,
+                'severity': severity,
+                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'prediction_id': int(prediction)
+            }
+            
+            return result
+            
+        except Exception as e:
+            print(f"❌ Prediction error: {e}")
+            return {
+                'attack_type': 'Error',
+                'confidence': 0.0,
+                'severity': 'Unknown',
+                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'prediction_id': -1
+            }
+    
     def preprocess_input(self, data):
         """
         Preprocess input data for prediction
