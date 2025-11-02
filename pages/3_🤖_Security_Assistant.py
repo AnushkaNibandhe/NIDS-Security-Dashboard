@@ -19,9 +19,20 @@ if not check_authentication():
 st.title("🤖 Security Assistant")
 st.markdown("### AI-Powered Cybersecurity Guidance")
 
+# --- START OF CRITICAL FIX ---
+
+# Use st.cache_resource decorator to ensure the heavy, environment-dependent 
+# LLM client is initialized only once and only when Streamlit is fully ready.
+@st.cache_resource
+def get_llm_assistant():
+    """Initializes the SecurityAssistant in a crash-proof manner."""
+    return SecurityAssistant()
+
 # Initialize LLM assistant
 if 'llm_assistant' not in st.session_state:
-    st.session_state.llm_assistant = SecurityAssistant()
+    st.session_state.llm_assistant = get_llm_assistant()
+
+# --- END OF CRITICAL FIX ---
 
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
