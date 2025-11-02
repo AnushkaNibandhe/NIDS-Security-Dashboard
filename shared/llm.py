@@ -4,11 +4,15 @@ Provides AI-powered security guidance using HuggingFace API
 """
 
 import os
-import streamlit as st # Import Streamlit to access st.secrets
+# We must import streamlit safely for st.secrets access
+import streamlit as st 
 from huggingface_hub import InferenceClient
+from dotenv import load_dotenv
 
-# Removed: from dotenv import load_dotenv
-# Removed: load_dotenv() # This line causes the app crash in Streamlit Cloud
+# Ensure dotenv is only loaded if we are running locally (safe check)
+if os.getenv('STREAMLIT_SERVER_PORT') is None:
+    # Only load dotenv for local development/testing
+    load_dotenv() 
 
 class SecurityAssistant:
     """LLM-powered security assistant using Foundation-Sec-8B"""
@@ -16,18 +20,20 @@ class SecurityAssistant:
     def __init__(self):
         """Initialize the security assistant"""
         
-        # 🚨 FIX: Use st.secrets to securely access the token added in the Streamlit dashboard
-        self.api_key = st.secrets.get('HF_TOKEN', '') 
+        # 🚨 FIX: Safely retrieve HF_TOKEN from Streamlit secrets (cloud) 
+        # or os.getenv (local fallback).
+        self.api_key = st.secrets.get('HF_TOKEN', os.getenv('HF_TOKEN', '')) 
         
         self.model_id = "fdtn-ai/Foundation-Sec-8B"
         self.provider = "featherless-ai"
         self.use_llm = True
         
         if not self.api_key:
-            print("⚠️ Warning: HF_TOKEN not found in st.secrets. Using fallback responses.")
+            print("⚠️ Warning: HF_TOKEN not found in environment. Using fallback responses.")
             self.client = None
         else:
             try:
+                # Initialize client only if key is available
                 self.client = InferenceClient(
                     provider=self.provider,
                     api_key=self.api_key
@@ -36,7 +42,7 @@ class SecurityAssistant:
             except Exception as e:
                 print(f"⚠️ LLM Client initialization failed: {e}")
                 self.client = None
-    
+
     def get_mitigation_steps(self, attack_type, confidence, row_data=None):
         """Get mitigation steps for detected attack"""
         
@@ -275,7 +281,7 @@ Beyond passwords: Implement MFA everywhere (password + phone/token + biometrics)
 
 Implementation: Use TLS 1.3 for data in transit (HTTPS, SFTP, VPN), AES-256 for data at rest (databases, file systems, backups), and PKI with RSA or ECC for key exchange. Enable full disk encryption on endpoints.
 
-Key management: Store keys separately from encrypted data, use HSMs for key generation and storage, implement key rotation policies, maintain recovery procedures, and never hardcode keys in application code."""
+Key management: Store encryption keys separately from encrypted data, use HSMs for key generation and storage, implement key rotation policies, maintain recovery procedures, and never hardcode keys in application code."""
         
         return f"""For questions about "{user_message}", I recommend consulting official security documentation (NIST, CIS benchmarks), vendor security guides, and MITRE ATT&CK framework.
 
