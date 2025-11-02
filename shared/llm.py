@@ -4,12 +4,11 @@ Provides AI-powered security guidance using HuggingFace API
 """
 
 import os
-import streamlit as st 
 from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
 
 # Conditionally load dotenv for local development/testing
-# This prevents the app from crashing in the cloud environment (Python 3.13 issue)
+# This prevents the app from crashing in the cloud environment
 if os.getenv('STREAMLIT_SERVER_PORT') is None:
     load_dotenv() 
 
@@ -19,10 +18,11 @@ class SecurityAssistant:
     def __init__(self):
         """Initialize the security assistant safely."""
         
-        # 1. Safely retrieve HF_TOKEN from Streamlit secrets (Cloud) or os.getenv (Local)
+        # 1. Final Crash Fix: Local import of streamlit for secure token lookup
         api_key_from_secrets = ""
         try:
-            # Try to get the key from Streamlit secrets (safest cloud method)
+            # Import streamlit locally to prevent startup crash during health check
+            import streamlit as st 
             api_key_from_secrets = st.secrets.get('HF_TOKEN', '')
         except Exception:
             # Pass silently if st.secrets is not yet initialized (early crash scenario)
@@ -286,4 +286,5 @@ Key management: Store encryption keys separately from encrypted data, use HSMs f
 Focus on security fundamentals: Keep systems patched, implement defense in depth with multiple security layers, follow principle of least privilege, enable comprehensive logging and monitoring, and conduct regular security assessments.
 
 Feel free to ask specific questions about firewalls, encryption, access control, network security, or attack types for detailed guidance."""
+    
     
