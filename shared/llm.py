@@ -4,25 +4,32 @@ Provides AI-powered security guidance using HuggingFace API
 """
 
 import os
-# We must import streamlit safely for st.secrets access
 import streamlit as st 
 from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
 
-# Ensure dotenv is only loaded if we are running locally (safe check)
+# Conditionally load dotenv for local development/testing
+# This prevents the app from crashing in the cloud environment (Python 3.13 issue)
 if os.getenv('STREAMLIT_SERVER_PORT') is None:
-    # Only load dotenv for local development/testing
     load_dotenv() 
 
 class SecurityAssistant:
     """LLM-powered security assistant using Foundation-Sec-8B"""
     
     def __init__(self):
-        """Initialize the security assistant"""
+        """Initialize the security assistant safely."""
         
-        # 🚨 FIX: Safely retrieve HF_TOKEN from Streamlit secrets (cloud) 
-        # or os.getenv (local fallback).
-        self.api_key = st.secrets.get('HF_TOKEN', os.getenv('HF_TOKEN', '')) 
+        # 1. Safely retrieve HF_TOKEN from Streamlit secrets (Cloud) or os.getenv (Local)
+        api_key_from_secrets = ""
+        try:
+            # Try to get the key from Streamlit secrets (safest cloud method)
+            api_key_from_secrets = st.secrets.get('HF_TOKEN', '')
+        except Exception:
+            # Pass silently if st.secrets is not yet initialized (early crash scenario)
+            pass
+
+        # 2. Use the found secret key, or fall back to os.getenv (local .env file)
+        self.api_key = api_key_from_secrets or os.getenv('HF_TOKEN', '')
         
         self.model_id = "fdtn-ai/Foundation-Sec-8B"
         self.provider = "featherless-ai"
@@ -48,13 +55,11 @@ class SecurityAssistant:
         
         if self.use_llm and self.client:
             try:
-                # Try LLM with better prompt
                 response = self._get_llm_mitigation(attack_type, confidence)
                 
-                # Validate and format
+                # Validation and formatting logic 
                 formatted = self._extract_steps(response)
                 
-                # Check quality - must have at least 4 good steps
                 if len(formatted) >= 4 and all(len(step) > 30 for step in formatted):
                     return self._format_final_output(formatted)
                 else:
@@ -70,7 +75,6 @@ class SecurityAssistant:
     def _get_llm_mitigation(self, attack_type, confidence):
         """Get mitigation from LLM with optimized prompt"""
         
-        # Create a very specific prompt that forces better output
         prompt = f"""As a cybersecurity expert, list 5 mitigation steps for a {attack_type} attack (confidence: {confidence:.0%}).
 
 Step 1: Implement rate limiting to restrict request frequency per IP address
@@ -88,8 +92,6 @@ Step 2:"""
             )
             
             response = str(result).strip()
-            
-            # Combine with prompt to get full list
             full_response = prompt + " " + response
             
             return full_response
@@ -108,9 +110,8 @@ Step 2:"""
             # Look for "Step X:" format
             for i in range(1, 10):
                 if f"Step {i}:" in line:
-                    # Extract content after "Step X:"
                     content = line.split(f"Step {i}:", 1)[-1].strip()
-                    if len(content) > 20:  # Must be substantial
+                    if len(content) > 20: 
                         steps.append(content)
                         break
             
@@ -126,21 +127,18 @@ Step 2:"""
         seen = set()
         unique_steps = []
         for step in steps:
-            # Normalize for comparison
             normalized = step.lower().strip()[:50]
             if normalized not in seen:
                 seen.add(normalized)
                 unique_steps.append(step)
         
-        return unique_steps[:5]  # Return max 5 steps
+        return unique_steps[:5] 
     
     def _format_final_output(self, steps):
         """Format steps into final output"""
         formatted = []
         for i, step in enumerate(steps, 1):
-            # Clean up step
             step = step.strip()
-            # Remove trailing punctuation if any
             if step.endswith('.'):
                 step = step[:-1]
             formatted.append(f"**{i}. {step}**")
